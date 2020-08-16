@@ -8,8 +8,7 @@ Adapted from Hesham Moshiri's code and using his PCB design ([https://www.pcbway
 Modified by Debasish Dutta (deba168; [https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0](https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0)).
 
 To the best of my knowledge the original idea for the hardware, and the very first
-sketch, came from Adam Welch, who had used a Nokia LCD and some protoboard for it.
-[http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/](http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/)
+sketch, came from Adam Welch, who had used a Nokia LCD and some protoboard for it ([http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/](http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/)).
 
 ## Features
 
