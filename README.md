@@ -17,3 +17,7 @@ sketch, came from Adam Welch, who had used a Nokia LCD and some protoboard for i
 ## How to use?
 
 This sketch can be used with either the Arduino IDE (just open the `.ino` file inside of the `CapacityTester` folder – but you'll have to read the `#include` statements and install libraries manually) or with PlatformIO (clone this repository, then execute `pio run -t upload` with the Arduino Nano connected to the computer via USB; libraries will be downloaded and installed for you).
+
+## Heads-up!
+
+I'm currently using the PCB designed by Debasish Dutta, but with a generic 1602 LCD improvised onto the Arduino Nano. Once I receive the OLED display he used, I might update this repository to use that again, or not.
