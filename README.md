@@ -10,7 +10,7 @@ Modified by Debasish Dutta (deba168)
 Cleaned up, back-ported to 1602 displays, and further modified by J. R. Schmid (sixtyfive)
 [https://github.com/sixtyfive/arduino-battery-capacity-tester-3.0](https://github.com/sixtyfive/arduino-battery-capacity-tester-3.0)
 
-![Photo of the improvised tester](/img/improvised-tester.jpeg | height=500)
+<img src="img/improvised-tester.jpeg" alt="Photo of the improvised tester" width="500"/>
 
 To the best of my knowledge the original idea for the hardware, and the very first
 sketch, came from Adam Welch, who had used a Nokia LCD and some protoboard for it.
