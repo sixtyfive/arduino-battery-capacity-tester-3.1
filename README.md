@@ -1,16 +1,11 @@
 Arduino Battery Capacity Tester 3.0
 ===================================
 
-Adapted from Hesham Moshiri's code.
-[https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html](https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)
-
-Modified by Debasish Dutta (deba168)
-[https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0](https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0) 
-
-Cleaned up, back-ported to 1602 displays, and further modified by J. R. Schmid (sixtyfive)
-[https://github.com/sixtyfive/arduino-battery-capacity-tester-3.0](https://github.com/sixtyfive/arduino-battery-capacity-tester-3.0)
-
 <img src="img/improvised-tester.jpeg" alt="Photo of the improvised tester" width="500"/>
+
+Adapted from Hesham Moshiri's code and using his PCB design ([https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html](https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)).
+
+Modified by Debasish Dutta (deba168; [https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0](https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0)).
 
 To the best of my knowledge the original idea for the hardware, and the very first
 sketch, came from Adam Welch, who had used a Nokia LCD and some protoboard for it.
