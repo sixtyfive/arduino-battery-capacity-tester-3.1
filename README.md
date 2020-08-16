@@ -1,7 +1,7 @@
 Arduino Battery Capacity Tester 3.0
 ===================================
 
-Originally taken from Hesam Moshiri
+Adapted from Hesham Moshiri's code.
 [https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html](https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)
 
 Modified by Debasish Dutta (deba168)
@@ -30,4 +30,4 @@ This sketch can be used with either the Arduino IDE (just open the `.ino` file i
 
 ## Heads-up!
 
-I'm currently using the PCB designed by Debasish Dutta, but with a generic 1602 LCD improvised onto the Arduino Nano. Once I receive the OLED display he used, I might update this repository to use that again, or not.
+I'm currently using the PCB designed by Hesham Moshiri, but with a generic 1602 LCD improvised onto the Arduino Nano. Once I receive the OLED display he used, I might update this repository to use that again, or not.
