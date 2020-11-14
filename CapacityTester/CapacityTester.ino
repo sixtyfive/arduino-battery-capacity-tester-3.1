@@ -217,10 +217,10 @@ void timerInterrupt()
       capacity =  (hour * 3600) + (minute * 60) + second;
       capacity = (capacity * current[pwm_val / 5]) / 3600;
 
-      sprintf(string, "%lumAh", capacity);
       print(1,L1, "Run complete.");
       print(1,L2, "Capacity:");
-      printBig(10-3-sizeof(string),L3, string);
+      sprintf(string, "%lumAh", capacity);
+      printBig(10-3-1-sizeof(string),L3, string);
 
       done = true;
       pwm_val = 0;
