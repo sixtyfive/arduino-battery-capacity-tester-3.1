@@ -53,7 +53,7 @@ const int current[] = {
 #define ADC_MAX 1024
 #define PWM_MAX  255
 #define VCC 4.952 // TODO: calculate from internal V_Ref instead (https://www.best-microcontroller-projects.com/arduino-voltage-reference.html)
-#define VBAT_LOW 3.200
+#define VBAT_LOW 3.000 // this is for LiIon batteries such as 18650s ... other chemistries might not like to go this low, but it's what I mostly use
 
 int pwm_val = 5; // = 100mA
 unsigned long capacity = 0;
