@@ -1,11 +1,7 @@
 Arduino Battery Capacity Tester 3.1
 ===================================
 
-Adapted from Hesham Moshiri's code and using his PCB design ([https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html](https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)), but ported to [lcdgfx](https://github.com/lexus2k/lcdgfx/) for handling the OLED.
-
-Modified by Debasish Dutta ([https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0](https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0)).
-
-To the best of my knowledge the original idea for the hardware, and the very first sketch, came from Adam Welch, who uses a Nokia LCD and some protoboard for it ([http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/](http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/)).
+Adapted from [Hesham Moshiri's code](https://www.instructables.com/Battery-Capacity-Tester-Using-Arduino-Lithium-NiMH/) as [modified by Debasish Dutta](https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0) but still using Hesham's [PCB layout](https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)). Ported to [lcdgfx](https://github.com/lexus2k/lcdgfx/) for handling the OLED. To the best of my knowledge the original idea for the hardware, and the very first sketch, came from Adam Welch, [who uses a Nokia LCD and some protoboard](http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/) for it.
 
 ## Features
 
