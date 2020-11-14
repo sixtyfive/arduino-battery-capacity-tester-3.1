@@ -1,13 +1,13 @@
 // Arduino Battery Capacity Tester 3.0
 // ===================================
 //
-// Originally taken from Hesam Moshiri 
+// Originally taken from Hesam Moshiri.
 // (https://www.pcbway.com/blog/technology/Battery_capacity_measurement_using_Arduino.html)
 // 
-// Modified by Debasish Dutta (deba168)
+// Modified by Debasish Dutta.
 // (https://www.opengreenenergy.com/post/arduino-battery-capacity-tester-v2-0) 
 //
-// Cleaned up, back-ported to 1602 displays, and further modified by J. R. Schmid (sixtyfive)
+// Cleaned up and ported to Aleksei Dynda's lcdgfx library by J. R. Schmid.
 // (https://github.com/sixtyfive/arduino-battery-capacity-tester-3.0)
 //
 // To the best of my knowledge the original idea for the hardware, and the very first
@@ -15,16 +15,15 @@
 // (http://static.adamwelch.co.uk/2016/01/lithium-ion-18650-battery-capacity-checker/)
 
 #include <Arduino.h>
-#include <Wire.h> 
-#include <LiquidCrystal.h>
+#include <lcdgfx.h>
 #include <JC_Button.h>
 #include <EasyBuzzer.h>
- 
+
 // Hisham's current steps with a 3R load (R7):
 // const int current[] = {0, 37, 70, 103, 136, 169, 202, 235, 268, 301, 334,  367, 400, 440, 470, 500, 540};
-// deba168's current steps with a 1R load (R3):
+// Debasish's current steps with a 1R0 load (R3):
 // const int current[] = {0, 110, 210, 300, 390, 490, 580, 680, 770, 870, 960, 1000};
-// sixtyfive's measurements (rounded up/down) with 1R (R3):
+// J.R.'s measurements (rounded up/down) with 1R0 (R3) as well:
 const int current[] = {
 /*   0 */    0,
 /*   5 */  100,
@@ -42,32 +41,24 @@ const int current[] = {
 /*  65 */ 1300,
 /*  70 */ 1400,
 /*  75 */ 1500};
- 
-const byte D2 = 2, D3 = 3;
-const byte D9 = 9, D10 = 10;
-const byte RS = 11, EN = 12, D4 = 4, D5 = 5, D6 = 6, D7 = 7;
 
-const int bat_pin = A0;
-Button btn_up(D2, 25, false, true);
-Button btn_dn(D3, 25, false, true);
-const byte buzzer_pin = D9, opamp_pin = D10;
-LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
-
-#define SIXTEEN_SPACES "                "
-byte pipe_char[] = {0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04};
-#define PIPE_CHAR 0
-byte backslash_char[] = {0x00, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x00};
-#define BACKSLASH_CHAR 1
+#define D2 2
+#define D3 3
+#define D9 9
+#define D10 10
+#define bat_pin A0
+#define buzzer_pin D9
+#define opamp_pin D10
 
 #define ADC_MAX 1024
 #define PWM_MAX  255
-#define VCC        5.160 // TODO: measure and adjust before uploading!
-#define VBAT_LOW   3.200
+#define VCC 4.952 // TODO: measure and adjust before uploading!
+#define VBAT_LOW 3.200
 
-int pwm_val = 0;
+int pwm_val = 5; // = 100mA
 unsigned long capacity = 0;
 int adc_val = 0;
-float vbat = 0;
+double vbat = 0;
 bool working = false, done = false;
 
 #define NOTE_C1      33
@@ -79,13 +70,170 @@ bool working = false, done = false;
 #define NOTE_D7    2349
 #define NOTE_G7    3136
 #define NOTE_G8    6272
+
 #define FULL_NOTE                 250
 #define HALF_NOTE      FULL_NOTE /  2
 #define QUARTER_NOTE   FULL_NOTE /  4
 #define EIGHTH_NOTE    FULL_NOTE /  8
 #define SIXTEENTH_NOTE FULL_NOTE / 16
 
-void buzz_hello()
+Button btn_up(D2, 25, false, true);
+Button btn_dn(D3, 25, false, true);
+
+char string[128]; // string formatting helper
+char floatval[5] = "0.00"; // voltage formatting helper
+
+DisplaySSD1306_128x32_I2C display(-1);
+
+// 128x32px display has 4 lines at 8px font height
+#define L1 1
+#define L2 8
+#define L3 16
+#define L4 24
+
+void setup()
+{
+  analogWrite(opamp_pin, pwm_val); // 0 => no flow of electricity through the MOSFET
+  
+  display.setFixedFont(ssd1306xled_font6x8);
+  display.begin();
+  display.getInterface().invertMode();
+  
+  EasyBuzzer.setPin(buzzer_pin);
+  buzzHello();
+
+  sayHello();
+  
+  btn_up.begin();
+  btn_dn.begin();
+}
+
+void loop()
+{
+  btn_up.read();
+  btn_dn.read();
+
+  if (btn_up.wasReleased() && pwm_val <= 70 && working == false) {
+    buzzButtonPressed();
+    pwm_val = pwm_val + 5;
+    printSetCurrent(pwm_val);
+  }
+
+  if (btn_dn.wasReleased() && pwm_val >= 10 && working == false) {
+    buzzButtonPressed();
+    pwm_val = pwm_val - 5;
+    printSetCurrent(pwm_val);
+  }
+  
+  if (btn_up.pressedFor(850) && working == false) {
+    display.clear();
+    buzzStart();
+    analogWrite(opamp_pin, pwm_val); // open up the MOSFET
+    timerInterrupt();
+  }
+}
+
+/* printFixed():
+ * - x (1 px res),
+ * - y (8 px res),
+ * - string (21 chars, then it wraps to next line, same x loc),
+ * - style (STYLE_NORMAL, BOLD, ITALIC),
+ * overwrites, but doesn't clear line or screen! */
+void print(int col, int line, const char* string)
+{
+  int x = ((col-1) * 6) + 1;
+  display.printFixed(x, line, string, STYLE_NORMAL);
+}
+
+/* there is also printFixedN, which takes another argument:
+ * - fontsize (FONT_SIZE_2X; ) */
+void printBig(int col, int line, const char* string)
+{
+  int x = ((col-1) * 12);
+  display.printFixedN(x, line, string, STYLE_NORMAL, FONT_SIZE_2X);
+}
+
+void sayHello()
+{
+  display.clear();
+  print(1,L1, "Arduino Battery");
+  print(1,L2, "Capacity Tester");
+  print(1,L4, "                 v3.1");
+  
+  lcd_delay(1200);
+  
+  display.clear();
+  print(1,L1, "Load adjust: UP/DOWN");
+  printSetCurrent(pwm_val);
+  
+  lcd_delay(50);
+}
+
+void printSetCurrent(int pwm_val)
+{
+  sprintf(string, "%imA   ", current[pwm_val / 5]);
+  printBig(1,L3, string);
+}
+
+void timerInterrupt()
+{
+  working = true;
+  
+  uint8_t hour = 0, minute = 0, second = 0;
+  
+  while (done == false) {
+    second++;
+    
+    if (second == 60) {
+      second = 0;
+      minute++;
+    }
+    
+    if (minute == 60) {
+      minute = 0;
+      hour++;
+    }
+    
+    sprintf(string, "%02d:%02d:%02d", hour, minute, second);
+    print(8,L4, string);
+
+    adc_val = analogRead(bat_pin);
+    vbat = adc_val * (VCC / (double)ADC_MAX);
+
+    dtostrf(vbat, 4, 2, floatval);
+    sprintf(string, "%sV ", floatval);
+    printBig(4,L2, string);
+
+    if ((int)vbat == 0) {
+      display.clear();
+      print(1,L1, "Connect battery and");
+      print(1,L2, "press RESET button.");
+      delay(200); buzzError();
+    }
+    
+    else if (vbat < VBAT_LOW) {
+      display.clear();
+
+      capacity =  (hour * 3600) + (minute * 60) + second;
+      capacity = (capacity * current[pwm_val / 5]) / 3600;
+
+      sprintf(string, "%lumAh", capacity);
+      print(1,L1, "Run complete.");
+      print(1,L2, "Capacity:");
+      printBig(10-3-sizeof(string),L3, string);
+
+      done = true;
+      pwm_val = 0;
+      analogWrite(opamp_pin, pwm_val); // cut the MOSFET
+
+      delay(1000); buzzDone();
+    }
+ 
+    delay(1000); // one second
+  }
+}
+
+void buzzHello()
 {
   EasyBuzzer.beep(NOTE_G6); delay(FULL_NOTE);
   EasyBuzzer.stopBeep(); delay(SIXTEENTH_NOTE);
@@ -93,7 +241,7 @@ void buzz_hello()
   EasyBuzzer.stopBeep();
 }
 
-void buzz_start()
+void buzzStart()
 {
   EasyBuzzer.beep(NOTE_C7); delay(EIGHTH_NOTE);
   EasyBuzzer.stopBeep(); delay(HALF_NOTE);
@@ -101,13 +249,13 @@ void buzz_start()
   EasyBuzzer.stopBeep();
 }
 
-void buzz_error()
+void buzzError()
 {
   EasyBuzzer.beep(NOTE_CFLAT4); delay(FULL_NOTE);
   EasyBuzzer.stopBeep();
 }
 
-void buzz_done()
+void buzzDone()
 {
   EasyBuzzer.beep(NOTE_A7); delay(HALF_NOTE);
   EasyBuzzer.stopBeep(); delay(SIXTEENTH_NOTE);
@@ -119,133 +267,8 @@ void buzz_done()
   EasyBuzzer.stopBeep();
 }
 
-void buzz_button_pressed()
+void buzzButtonPressed()
 {
   EasyBuzzer.beep(NOTE_C1); delay(SIXTEENTH_NOTE);
   EasyBuzzer.stopBeep();
-}
-
-void lcd_line1_clear()
-{
-  lcd.setCursor(0, 1); lcd.print(SIXTEEN_SPACES); lcd.setCursor(0, 1);
-}
-
-void setup()
-{
-  // Serial.begin(9600);
-  // Serial.println("Hello there!");
-
-  EasyBuzzer.setPin(buzzer_pin);
-
-  analogWrite(opamp_pin, pwm_val); // 0 => no flow of electricity through the MOSFET
- 
-  btn_up.begin();
-  btn_dn.begin();
- 
-  lcd.begin(16, 2);
-	lcd.createChar(PIPE_CHAR, pipe_char);
-	lcd.createChar(BACKSLASH_CHAR, backslash_char);
-	lcd.home();
-
-  buzz_hello();
-
-  lcd.print("Lithium Battery"); lcd.setCursor(0, 1);
-  lcd.print("Capacity Tester"); delay(850);
-  lcd.clear();
-
-  lcd.print("Load adj: UP/DN");
-  lcd.setCursor(0, 1); lcd.print("0mA");
-}
- 
-void loop() {
-  btn_up.read();
-  btn_dn.read();
-
-  if (btn_up.wasReleased() && pwm_val <= 70 && working == false) {
-    buzz_button_pressed();
-    pwm_val = pwm_val + 5;
-    // analogWrite(opamp_pin, pwm_val);
-
-    lcd_line1_clear();
-    lcd.print(String(current[pwm_val / 5]) + "mA");
-  }
-
-  if (btn_dn.wasReleased() && pwm_val >= 5 && working == false) {
-    buzz_button_pressed();
-    pwm_val = pwm_val - 5;
-    // analogWrite(opamp_pin, pwm_val);
-
-    lcd_line1_clear();
-    lcd.print(String(current[pwm_val / 5]) + "mA");
-  }
-  
-  if (btn_up.pressedFor(850) && working == false) {
-    lcd.clear();
-    buzz_start();
-
-    analogWrite(opamp_pin, pwm_val); // open up the MOSFET
-    timerInterrupt();
-  }
-}
- 
-void timerInterrupt()
-{
-  working = true;
-  
-  uint8_t hour = 0, minute = 0, second = 0;
-  char c[16]; // string formatting helper
-  char spinner = '/';
-  
-  while (done == false) {
-    second++;
-    
-    if (second == 60) {
-      second = 0;
-      minute++;
-      lcd.clear();
-    }
-    
-    if (minute == 60) {
-      minute = 0;
-      hour++;
-    }
-    
-    sprintf(c, "%d:%02d:%02d", hour, minute, second);
-    lcd.home(); lcd.print(c);
-
-    adc_val = analogRead(bat_pin);
-    vbat = adc_val * (VCC / (float)ADC_MAX);
-
-    lcd.setCursor(11, 0); lcd.print(String(vbat) + "V");
-    switch (spinner) {
-      case '/':            spinner = '-';            break;
-      case '-':            spinner = BACKSLASH_CHAR; break;
-      case BACKSLASH_CHAR: spinner = PIPE_CHAR;      break;
-      case PIPE_CHAR:      spinner = '/';            break; }
-    lcd.setCursor(0, 1); lcd.write(spinner);
- 
-    if (vbat == (float)0) {
-      lcd_line1_clear();
-      lcd.print("Err: no battery.");
-      lcd.print("> Insert, reset!");
-
-      delay(200); buzz_error();
-    } else if (vbat < VBAT_LOW) {
-      // Serial.println(vbat);
-      lcd_line1_clear();
-
-      capacity =  (hour * 3600) + (minute * 60) + second;
-      capacity = (capacity * current[pwm_val / 5]) / 3600;
-
-      lcd.print("C-bat: " + String(capacity) + "mAh");
-
-      done = true;
-      pwm_val = 0;
-      analogWrite(opamp_pin, pwm_val); // again, no flow of electricity through the MOSFET
-
-      delay(1000); buzz_done();
-    }
- 
-    delay(1000); // one second
-  }
 }
