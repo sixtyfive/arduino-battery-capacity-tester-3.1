@@ -52,7 +52,7 @@ const int current[] = {
 
 #define ADC_MAX 1024
 #define PWM_MAX  255
-#define VCC 4.952 // TODO: measure and adjust before uploading!
+#define VCC 4.952 // TODO: calculate from internal V_Ref instead (https://www.best-microcontroller-projects.com/arduino-voltage-reference.html)
 #define VBAT_LOW 3.200
 
 int pwm_val = 5; // = 100mA
@@ -198,7 +198,7 @@ void timerInterrupt()
     print(8,L4, string);
 
     adc_val = analogRead(bat_pin);
-    vbat = adc_val * (VCC / (double)ADC_MAX);
+    vbat = (adc_val + 0.5) * (VCC / (double)ADC_MAX); // http://www.skillbank.co.uk/arduino/adc.htm
 
     dtostrf(vbat, 4, 2, floatval);
     sprintf(string, "%sV ", floatval);
