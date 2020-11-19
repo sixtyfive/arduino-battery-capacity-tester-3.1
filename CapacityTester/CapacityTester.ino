@@ -80,8 +80,9 @@ bool working = false, done = false;
 Button btn_up(D2, 25, false, true);
 Button btn_dn(D3, 25, false, true);
 
-char string[128]; // string formatting helper
-char floatval[5] = "0.00"; // voltage formatting helper
+char stringval[128+1]; // string formatting helper
+char floatval[5+1] = "0.00"; // voltage formatting helper
+char timeval[11+1] = "00:00:00"; // running time formatting helper
 
 DisplaySSD1306_128x32_I2C display(-1);
 
@@ -171,8 +172,8 @@ void sayHello()
 
 void printSetCurrent(int pwm_val)
 {
-  sprintf(string, "%imA   ", current[pwm_val / 5]);
-  printBig(1,L3, string);
+  sprintf(stringval, "%imA   ", current[pwm_val / 5]);
+  printBig(1,L3, stringval);
 }
 
 void timerInterrupt()
@@ -194,15 +195,15 @@ void timerInterrupt()
       hour++;
     }
     
-    sprintf(string, "%02d:%02d:%02d", hour, minute, second);
-    print(8,L4, string);
+    sprintf(timeval, "%02d:%02d:%02d", hour, minute, second);
+    print(8,L4, timeval);
 
     adc_val = analogRead(bat_pin);
     vbat = (adc_val + 0.5) * (VCC / (double)ADC_MAX); // http://www.skillbank.co.uk/arduino/adc.htm
 
     dtostrf(vbat, 4, 2, floatval);
-    sprintf(string, "%sV ", floatval);
-    printBig(4,L2, string);
+    sprintf(stringval, "%sV ", floatval);
+    printBig(4,L2, stringval);
 
     if ((int)vbat == 0) {
       display.clear();
@@ -218,9 +219,10 @@ void timerInterrupt()
       capacity = (capacity * current[pwm_val / 5]) / 3600;
 
       print(1,L1, "Run complete.");
-      print(1,L2, "Capacity:");
-      sprintf(string, "%lumAh", capacity);
-      printBig(10-3-1-sizeof(string),L3, string);
+      sprintf(stringval, "after %s:", timeval);
+      print(1,L2, stringval);
+      sprintf(stringval, "%lumAh", capacity);
+      printBig(1,L3, stringval);
 
       done = true;
       pwm_val = 0;
