@@ -59,7 +59,8 @@ int pwm_val = 5; // = 100mA
 unsigned long capacity = 0;
 int adc_val = 0;
 double vbat = 0;
-bool working = false, done = false;
+bool running = false;
+uint8_t hour = 0, minute = 0, second = 0;
 
 #define NOTE_C1      33
 #define NOTE_CFLAT4 277
@@ -114,23 +115,23 @@ void loop()
   btn_up.read();
   btn_dn.read();
 
-  if (btn_up.wasReleased() && pwm_val <= 70 && working == false) {
+  if (btn_up.wasReleased() && pwm_val <= 70 && running == false) {
     buzzButtonPressed();
     pwm_val = pwm_val + 5;
     printSetCurrent(pwm_val);
   }
 
-  if (btn_dn.wasReleased() && pwm_val >= 10 && working == false) {
+  if (btn_dn.wasReleased() && pwm_val >= 10 && running == false) {
     buzzButtonPressed();
     pwm_val = pwm_val - 5;
     printSetCurrent(pwm_val);
   }
   
-  if (btn_up.pressedFor(850) && working == false) {
+  if (btn_up.pressedFor(850) && running == false) {
     display.clear();
     buzzStart();
     analogWrite(opamp_pin, pwm_val); // open up the MOSFET
-    timerInterrupt();
+    runTest();
   }
 }
 
@@ -176,13 +177,40 @@ void printSetCurrent(int pwm_val)
   printBig(1,L3, stringval);
 }
 
-void timerInterrupt()
+void displayError()
 {
-  working = true;
+  display.clear();
   
-  uint8_t hour = 0, minute = 0, second = 0;
+  if (running) {
+    print(1,L1, "Battery failure!");
+    print(1,L2, "Remove and RESET.");
+  } else {
+    print(1,L1, "Connect battery and");
+    print(1,L2, "press RESET button.");
+  }
   
-  while (done == false) {
+  delay(250); buzzError(); analogWrite(opamp_pin, 0); while(1);
+}
+
+void displayResult()
+{
+  display.clear();
+
+  capacity =  (hour * 3600) + (minute * 60) + second;
+  capacity = (capacity * current[pwm_val / 5]) / 3600;
+
+  print(1,L1, "Run complete.");
+  sprintf(stringval, "after %s:", timeval);
+  print(1,L2, stringval);
+  sprintf(stringval, "%lumAh", capacity);
+  printBig(1,L3, stringval);
+
+  delay(250); buzzDone(); analogWrite(opamp_pin, 0); while(1);
+}
+
+void runTest()
+{
+  while(1) {
     second++;
     
     if (second == 60) {
@@ -197,40 +225,22 @@ void timerInterrupt()
     
     sprintf(timeval, "%02d:%02d:%02d", hour, minute, second);
     print(8,L4, timeval);
-
+  
     adc_val = analogRead(bat_pin);
     vbat = (adc_val + 0.5) * (VCC / (double)ADC_MAX); // http://www.skillbank.co.uk/arduino/adc.htm
-
+  
     dtostrf(vbat, 4, 2, floatval);
     sprintf(stringval, "%sV ", floatval);
     printBig(4,L2, stringval);
-
+  
     if ((int)vbat == 0) {
-      display.clear();
-      print(1,L1, "Connect battery and");
-      print(1,L2, "press RESET button.");
-      delay(200); buzzError();
+      displayError();
+    } else if (vbat < VBAT_LOW) {
+      displayResult();
+    } else {
+      running = true;
     }
-    
-    else if (vbat < VBAT_LOW) {
-      display.clear();
-
-      capacity =  (hour * 3600) + (minute * 60) + second;
-      capacity = (capacity * current[pwm_val / 5]) / 3600;
-
-      print(1,L1, "Run complete.");
-      sprintf(stringval, "after %s:", timeval);
-      print(1,L2, stringval);
-      sprintf(stringval, "%lumAh", capacity);
-      printBig(1,L3, stringval);
-
-      done = true;
-      pwm_val = 0;
-      analogWrite(opamp_pin, pwm_val); // cut the MOSFET
-
-      delay(1000); buzzDone();
-    }
- 
+  
     delay(1000); // one second
   }
 }
