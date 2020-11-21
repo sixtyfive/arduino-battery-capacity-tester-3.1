@@ -87,7 +87,7 @@ char timeval[11+1] = "00:00:00"; // running time formatting helper
 
 DisplaySSD1306_128x32_I2C display(-1);
 
-// 128x32px display has 4 lines at 8px font height
+// 128x32 display has 4 lines at 8px font height
 #define L1 1
 #define L2 8
 #define L3 16
@@ -199,9 +199,7 @@ void displayResult()
   capacity =  (hour * 3600) + (minute * 60) + second;
   capacity = (capacity * current[pwm_val / 5]) / 3600;
 
-  print(1,L1, "Run complete.");
-  sprintf(stringval, "after %s:", timeval);
-  print(1,L2, stringval);
+  print(14,L1, timeval);
   sprintf(stringval, "%lumAh", capacity);
   printBig(1,L3, stringval);
 
